@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Zero-Dependency Binary STL 3D Viewer</title>
+<style>
+  :root { --bg:#050914; --panel:#0b1222; --cyan:#38bdf8; --text:#e2e8f0; --muted:#94a3b8; --mono:ui-monospace,Menlo,monospace; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--text); font-family:system-ui,sans-serif; padding:20px; display:flex; flex-direction:column; gap:14px; max-width:1080px; margin:0 auto; }
+  h1 { font-size:20px; color:#bae6fd; font-family:var(--mono); }
+  .bar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  button, label.btn { background:rgba(56,189,248,0.14); border:1px solid rgba(56,189,248,0.45); color:#bae6fd; padding:6px 12px; border-radius:8px; font-family:var(--mono); font-size:12px; cursor:pointer; }
+  button.active { background:var(--cyan); color:#050914; font-weight:700; }
+  .stage { position:relative; width:100%; height:520px; border-radius:12px; border:1px solid rgba(56,189,248,0.35); background:radial-gradient(circle at 50% 42%, #13213e 0%, #050914 78%); overflow:hidden; cursor:grab; }
+  .stage:active { cursor:grabbing; }
+  canvas { width:100%; height:100%; display:block; }
+  .status { position:absolute; left:12px; bottom:12px; background:rgba(5,9,20,0.82); border:1px solid rgba(56,189,248,0.35); padding:6px 10px; border-radius:8px; font-family:var(--mono); font-size:11px; color:#7dd3fc; }
+</style>
+</head>
+<body>
+  <h1>BLENDER-SWARM-KIT // ZERO-DEPENDENCY BINARY STL VIEWER</h1>
+  <div class="bar">
+    <label class="btn">Open Local .STL <input id="fileInput" type="file" accept=".stl" hidden /></label>
+    <button id="mShaded" class="active">Shaded</button>
+    <button id="mTron">TRON Grid</button>
+    <button id="mWire">Wireframe</button>
+    <button id="bOrbit" class="active">Auto-Orbit: ON</button>
+    <button id="bReset">Reset Camera</button>
+  </div>
+  <div class="stage" id="stage">
+    <canvas id="canvas"></canvas>
+    <div class="status" id="status">Drop any binary .stl file here or click "Open Local .STL" (or pass ?stl=path/to/file.stl)</div>
+  </div>
+<script src="stl-viewer.js"></script>
+<script>
+  const statusEl = document.getElementById("status");
+  const viewer = window.STLViewer.createSTLViewer(
+    document.getElementById("canvas"),
+    document.getElementById("stage"),
+    { onStatus: (t) => { statusEl.textContent = t; } }
+  );
+
+  const modes = { mShaded: "shaded", mTron: "tron", mWire: "wire" };
+  Object.entries(modes).forEach(([id, mode]) => {
+    document.getElementById(id).addEventListener("click", (e) => {
+      Object.keys(modes).forEach((k) => document.getElementById(k).classList.toggle("active", k === id));
+      viewer.setRenderMode(mode);
+    });
+  });
+
+  let orbit = true;
+  document.getElementById("bOrbit").addEventListener("click", (e) => {
+    orbit = !orbit;
+    e.target.classList.toggle("active", orbit);
+    e.target.textContent = orbit ? "Auto-Orbit: ON" : "Auto-Orbit: OFF";
+    viewer.setAutoOrbit(orbit);
+  });
+  document.getElementById("bReset").addEventListener("click", () => viewer.resetCamera());
+
+  async function loadFile(file) {
+    if (!file) return;
+    viewer.loadBuffer(await file.arrayBuffer(), file.name);
+  }
+  document.getElementById("fileInput").addEventListener("change", (e) => loadFile(e.target.files[0]));
+  const stage = document.getElementById("stage");
+  stage.addEventListener("dragover", (e) => e.preventDefault());
+  stage.addEventListener("drop", (e) => { e.preventDefault(); loadFile(e.dataTransfer.files[0]); });
+
+  const q = new URLSearchParams(location.search).get("stl");
+  if (q) viewer.loadUrl(q).catch((err) => { statusEl.textContent = "Load error: " + err.message; });
+</script>
+</body>
+</html>

@@ -61,4 +61,4 @@ python3 -m unittest discover -s tests -v
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+Apache License 2.0 — see [LICENSE](LICENSE).
